@@ -22,7 +22,7 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 unsigned int mapWidth, mapHeight;
 bool map[MAX_WIDTH][MAX_HEIGHT];
-char image[MAX_COLUMNS][MAX_ROWS];
+unsigned char image[MAX_COLUMNS][MAX_ROWS];
 
 char playerOrientation = 0;
 double playerAngle = 0;
@@ -98,8 +98,8 @@ double getDistance(double coordX, double coordY, double angle)
 
     while (!isOccupiedSpace(newCoordX, newCoordY))
     {
-        newCoordX += 0.01 * cos(angle);
-        newCoordY += 0.01 * sin(angle);
+        newCoordX += 0.005 * cos(angle);
+        newCoordY += 0.005 * sin(angle);
     }
 
     if (DEBUG)
@@ -198,7 +198,7 @@ void buildImage(unsigned short columns, unsigned short rows)
     for (double angle = playerAngle - VIEW_ANGLE / 2, column = 0; angle <= playerAngle + VIEW_ANGLE / 2; angle += VIEW_ANGLE / columns, ++column)
     {
         double dist = getDistance(playerPositionX, playerPositionY, angle);
-        unsigned short lineLength = 1 / dist * 9;
+        unsigned short lineLength = 1 / dist * (rows / 2);
         if (DEBUG)
             cout << dist << '\n';
 
@@ -218,7 +218,7 @@ void buildImage(unsigned short columns, unsigned short rows)
         drawLineOnImage(column, rows, lineLength, pixelCode);
     }
 
-    drawMinimap(columns, rows);
+    //drawMinimap(columns, rows);
 }
 
 
@@ -278,14 +278,26 @@ int main()
                 for (int j = 0; j < columns; j++)
                 {
                     (buffer + i * columns + j)->Char.AsciiChar = image[j][i];
-                    (buffer + i * columns + j)->Attributes = 7;
+                    
+                    if (i < rows / 2)
+                    {
+                        (buffer + i * columns + j)->Attributes = 0xB7;
+                    }
+                    else if (image[j][i] != 32)
+                    {
+                        (buffer + i * columns + j)->Attributes = 0x34;
+                    }
+                    else
+                    {
+                        (buffer + i * columns + j)->Attributes = 0x88;
+                    }
 
                 }
             }
 
             WriteConsoleOutput(hOutput, (CHAR_INFO *)buffer, dwBufferSize, dwBufferCoord, &rcRegion);
 
-            sprintf_s(titleBuffer, "rows: %d columns: %d frames: %d", rows, columns, frames++);
+            sprintf_s(titleBuffer, "rows: %d columns: %d frames: %d extra1: %uc", rows, columns, frames++, image[columns-1][rows-1]);
             SetWindowText(hWindow, titleBuffer);
             Sleep(16);
         }
@@ -305,8 +317,8 @@ int main()
                 playerPositionY += sn / 32;
                 copyImage(prevImage, columns, rows);
                 buildImage(columns, rows);
-                printImage(prevImage, columns, rows);
-                Sleep(30);
+                //printImage(prevImage, columns, rows);
+                //Sleep(30);
                 //}
                 playerPositionX += cs / 32;
                 playerPositionY += sn / 32;
@@ -324,8 +336,8 @@ int main()
                 playerPositionY -= sn / 32;
                 copyImage(prevImage, columns, rows);
                 buildImage(columns, rows);
-                printImage(prevImage, columns, rows);
-                Sleep(30);
+                //printImage(prevImage, columns, rows);
+                //Sleep(30);
                 //}
                 playerPositionX -= cs / 32;
                 playerPositionY -= sn / 32;
@@ -335,26 +347,26 @@ int main()
         {
             //for (char i = 0; i < 5; i++)
             //{
-            playerAngle -= M_PI / 32;
+            playerAngle -= M_PI / 64;
             copyImage(prevImage, columns, rows);
             buildImage(columns, rows);
-            printImage(prevImage, columns, rows);
-            Sleep(30);
+            //printImage(prevImage, columns, rows);
+            //Sleep(30);
             //}
-            playerAngle -= M_PI / 32;
+            playerAngle -= M_PI / 64;
             playerOrientation = (playerOrientation + 1) % 4;
         }
         if (GetKeyState('D') & 0x8000)
         {
             //for (char i = 0; i < 5; i++)
             //{
-            playerAngle += M_PI / 32;
+            playerAngle += M_PI / 64;
             copyImage(prevImage, columns, rows);
             buildImage(columns, rows);
-            printImage(prevImage, columns, rows);
-            Sleep(30);
+            //printImage(prevImage, columns, rows);
+            //Sleep(30);
             //}
-            playerAngle += M_PI / 32;
+            playerAngle += M_PI / 64;
             playerOrientation = (playerOrientation + 3) % 4;
         }
     }
