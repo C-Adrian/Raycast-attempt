@@ -14,11 +14,11 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #define MAX_HEIGHT 100
 #define M_PI 3.14159265358979323846
 #define VIEW_ANGLE (M_PI / 2)
-#define MINIMAP_WIDTH 9
-#define MINIMAP_HEIGHT 9
+#define MINIMAP_WIDTH 16
+#define MINIMAP_HEIGHT 16
 
-#define MAX_COLUMNS 300
-#define MAX_ROWS 150
+#define MAX_COLUMNS 1000
+#define MAX_ROWS 1000
 
 unsigned int mapWidth, mapHeight;
 bool map[MAX_WIDTH][MAX_HEIGHT];
@@ -29,7 +29,7 @@ double playerAngle = 0;
 double playerPositionX = 0.5;
 double playerPositionY = 0.5;
 
-enum Distances { Close = 2, Further = 4, Far = 6, VeryFar = 8, ExtremelyFar = 10 };
+enum Distances { Close = 4, Further = 6, Far = 8, VeryFar = 10, ExtremelyFar = 12 };
 enum Distances distance;
 
 void readMap()
@@ -217,8 +217,6 @@ void buildImage(unsigned short columns, unsigned short rows)
 
         drawLineOnImage(column, rows, lineLength, pixelCode);
     }
-
-    //drawMinimap(columns, rows);
 }
 
 
@@ -249,6 +247,10 @@ int main()
     HWND hWindow = GetConsoleWindow();
     unsigned short columns, rows;
     char prevImage[MAX_COLUMNS][MAX_ROWS];
+
+    CHAR_INFO * buffer = nullptr;
+    unsigned int bufferSize = 0;
+
     unsigned int frames = 0;
     char titleBuffer[128] = { 0 };
 
@@ -259,8 +261,16 @@ int main()
         columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
         rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 
+        if (rows * columns != bufferSize)
+        {
+            delete buffer;
+            bufferSize = columns * rows;
+            buffer = new CHAR_INFO[bufferSize];
+        }
+
         copyImage(prevImage, columns, rows);
         buildImage(columns, rows);
+        drawMinimap(columns, rows);
 
         if (!DEBUG)
         {
@@ -270,9 +280,7 @@ int main()
             COORD dwBufferSize = { columns, rows };
             COORD dwBufferCoord = { 0, 0 };
             SMALL_RECT rcRegion = { 0, 0, columns - 1, rows - 1 };
-
-            CHAR_INFO *buffer = new CHAR_INFO[rows * columns];
-
+            
             for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < columns; j++)
@@ -289,7 +297,8 @@ int main()
                     }
                     else
                     {
-                        (buffer + i * columns + j)->Attributes = 0x88;
+                        (buffer + i * columns + j)->Char.AsciiChar = 178;
+                        (buffer + i * columns + j)->Attributes = 0x08;
                     }
 
                 }
@@ -297,7 +306,7 @@ int main()
 
             WriteConsoleOutput(hOutput, (CHAR_INFO *)buffer, dwBufferSize, dwBufferCoord, &rcRegion);
 
-            sprintf_s(titleBuffer, "rows: %d columns: %d frames: %d extra1: %uc", rows, columns, frames++, image[columns-1][rows-1]);
+            sprintf_s(titleBuffer, "rows: %d columns: %d frames: %d playerx: %04f playerx: %04f playerangle: %04f", rows, columns, frames++, playerPositionX, playerPositionY, playerAngle);
             SetWindowText(hWindow, titleBuffer);
             Sleep(16);
         }
@@ -369,5 +378,8 @@ int main()
             playerAngle += M_PI / 64;
             playerOrientation = (playerOrientation + 3) % 4;
         }
+
+        while (playerAngle > 2 * M_PI) playerAngle -= 2*M_PI;
+        while (playerAngle < 0) playerAngle += 2*M_PI;
     }
 }
